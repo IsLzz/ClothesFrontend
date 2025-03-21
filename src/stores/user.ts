@@ -7,6 +7,11 @@ interface UserState {
   token: string | null
 }
 
+interface LoginResponse {
+  token: string
+  user: User
+}
+
 export const useUserStore = defineStore('user', {
   state: (): UserState => ({
     user: null,
@@ -21,10 +26,10 @@ export const useUserStore = defineStore('user', {
   actions: {
     async login(email: string, password: string) {
       try {
-        const response = await request.post('/auth/login', { email, password })
-        this.token = response.token
-        this.user = response.user
-        localStorage.setItem('token', response.token)
+        const { data } = await request.post<LoginResponse>('/auth/login', { email, password })
+        this.token = data.token
+        this.user = data.user
+        localStorage.setItem('token', data.token)
         return true
       } catch (error) {
         console.error('Login failed:', error)
@@ -40,13 +45,18 @@ export const useUserStore = defineStore('user', {
     
     async fetchUserInfo() {
       try {
-        const user = await request.get('/user/profile')
-        this.user = user
+        const { data } = await request.get<User>('/user/profile')
+        this.user = data
         return true
       } catch (error) {
         console.error('Failed to fetch user info:', error)
         return false
       }
+    },
+
+    setUser(user: User) {
+      this.user = user
+      return true
     }
   },
   

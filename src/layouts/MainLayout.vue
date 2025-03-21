@@ -68,34 +68,44 @@
       </div>
       
       <div class="navbar-end">
-        <div class="dropdown dropdown-end">
-          <div tabindex="0" role="button" class="btn btn-ghost btn-circle">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 stroke-current" fill="none" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-            </svg>
+        <!-- 主题切换按钮和抽屉 -->
+        <div class="drawer drawer-end">
+          <input id="theme-drawer" type="checkbox" class="drawer-toggle" />
+          <div class="drawer-content">
+            <label for="theme-drawer" class="btn btn-ghost btn-circle">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 stroke-current" fill="none" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+              </svg>
+            </label>
           </div>
-          <div class="dropdown-content bg-base-200 text-base-content rounded-box top-px max-h-[70vh] w-56 overflow-y-auto shadow-2xl mt-4">
-            <div class="grid grid-cols-1 gap-3 p-3" tabindex="0">
-              <div v-for="theme in themeStore.themes" 
-                :key="theme"
-                class="outline-base-content overflow-hidden rounded-lg outline-2 outline-offset-2 cursor-pointer"
-                :class="{ 'outline': theme === themeStore.currentTheme }"
-                @click="themeStore.setTheme(theme)"
-              >
-                <div :data-theme="theme" class="bg-base-100 text-base-content w-full font-sans hover:bg-base-200 transition-colors">
-                  <div class="grid grid-cols-5 grid-rows-3">
-                    <div class="col-span-5 row-span-3 row-start-1 flex items-center gap-2 px-4 py-3">
-                      <div class="flex-grow">
-                        <div class="font-bold text-sm capitalize">{{ theme }}</div>
-                        <div class="text-xs opacity-70">
-                          {{ theme === themeStore.currentTheme ? '当前主题' : '点击切换' }}
+          <div class="drawer-side z-50">
+            <label for="theme-drawer" class="drawer-overlay"></label>
+            <div class="w-80 min-h-full bg-base-200 text-base-content p-4">
+              <h2 class="text-lg font-bold mb-4">选择主题</h2>
+              <div class="grid grid-cols-1 gap-4">
+                <div v-for="theme in themeStore.themes" 
+                  :key="theme"
+                  class="outline-base-content overflow-hidden rounded-lg outline-2 outline-offset-2 cursor-pointer"
+                  :class="{ 'outline': theme === themeStore.currentTheme }"
+                  @click="() => {
+                    themeStore.setTheme(theme)
+                  }"
+                >
+                  <div :data-theme="theme" class="bg-base-100 text-base-content w-full font-sans hover:bg-base-200 transition-colors">
+                    <div class="grid grid-cols-5 grid-rows-3">
+                      <div class="col-span-5 row-span-3 row-start-1 flex items-center gap-2 px-4 py-3">
+                        <div class="flex-grow">
+                          <div class="font-bold capitalize">{{ theme }}</div>
+                          <div class="text-sm opacity-70">
+                            {{ theme === themeStore.currentTheme ? '当前主题' : '点击切换' }}
+                          </div>
                         </div>
-                      </div>
-                      <div class="flex flex-shrink-0 flex-wrap gap-1">
-                        <div class="bg-primary w-2 rounded"></div>
-                        <div class="bg-secondary w-2 rounded"></div>
-                        <div class="bg-accent w-2 rounded"></div>
-                        <div class="bg-neutral w-2 rounded"></div>
+                        <div class="flex flex-shrink-0 flex-wrap gap-1">
+                          <div class="bg-primary w-2 h-8 rounded"></div>
+                          <div class="bg-secondary w-2 h-8 rounded"></div>
+                          <div class="bg-accent w-2 h-8 rounded"></div>
+                          <div class="bg-neutral w-2 h-8 rounded"></div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -104,7 +114,9 @@
             </div>
           </div>
         </div>
-        <div class="dropdown dropdown-end" v-if="isLoggedIn">
+
+        <!-- 用户头像下拉菜单 -->
+        <div class="dropdown dropdown-end ml-2" v-if="isLoggedIn">
           <label tabindex="0" class="btn btn-ghost btn-circle avatar">
             <div class="w-10 rounded-full">
               <img :src="userInfo?.avatar || '/default-avatar.png'" alt="avatar" />
@@ -115,7 +127,7 @@
             <li><a @click="handleLogout">退出登录</a></li>
           </ul>
         </div>
-        <router-link v-else to="/auth/login" class="btn btn-primary">登录</router-link>
+        <router-link v-else to="/auth/login" class="btn btn-primary ml-2">登录</router-link>
       </div>
     </nav>
 
@@ -138,6 +150,7 @@ import { useUserStore } from '@/stores/user'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import { useThemeStore } from '@/stores/theme'
+import { onMounted } from 'vue'
 
 const userStore = useUserStore()
 const router = useRouter()
@@ -148,4 +161,9 @@ const handleLogout = async () => {
   await userStore.logout()
   router.push('/auth/login')
 }
+
+// 页面加载时初始化主题
+onMounted(() => {
+  
+})
 </script> 

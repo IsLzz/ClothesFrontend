@@ -1,12 +1,7 @@
 <template>
   <div class="min-h-screen bg-base-200">
     <!-- 页头 -->
-    <header class="navbar bg-base-100 shadow-lg">
-      <div class="flex-1">
-        <router-link to="/" class="btn btn-ghost text-xl">服装租赁</router-link>
-      </div>
-    </header>
-
+    
     <!-- 主要内容 -->
     <main class="container mx-auto px-4 py-8">
       <router-view></router-view>

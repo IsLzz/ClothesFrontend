@@ -13,6 +13,11 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('@/views/front/Home.vue')
       },
       {
+        path: 'clothing',
+        name: 'clothing-list',
+        component: () => import('@/views/front/ClothingList.vue')
+      },
+      {
         path: 'clothing/:id',
         name: 'clothing-detail',
         component: () => import('@/views/front/ClothingDetail.vue')
@@ -109,7 +114,7 @@ const router = createRouter({
 // 路由守卫
 router.beforeEach((to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
   const token = localStorage.getItem('token')
-  const userRole = localStorage.getItem('userRole')
+  const userRole = JSON.parse(localStorage.getItem('user') || '{}').role
   
   // 公开页面（无需登录）
   const publicPages = [

@@ -60,7 +60,7 @@
           <div class="form-control mt-6">
             <button
               type="submit"
-              class="btn btn-primary"
+              class="btn btn-primary w-full"
               :disabled="isLoading || !isFormValid"
             >
               {{ isLoading ? '注册中...' : '注册' }}

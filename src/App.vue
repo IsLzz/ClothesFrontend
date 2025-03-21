@@ -7,10 +7,11 @@ const userStore = useUserStore()
 const themeStore = useThemeStore()
 
 onMounted(async () => {
+  themeStore.initTheme()
   if (userStore.isLoggedIn) {
     await userStore.fetchUserInfo()
   }
-  themeStore.initTheme()
+  
 })
 </script>
 

@@ -22,18 +22,24 @@ export interface Clothing {
   status: 'available' | 'rented' | 'maintenance'
 }
 
-// 订单相关类型
+// 订单状态类型
+export type OrderStatus = 'pending' | 'paid' | 'renting' | 'returned' | 'cancelled'
+
+// 订单类型
 export interface Order {
   id: number
   userId: number
   clothingId: number
+  clothingName: string
+  clothingImage: string
+  size: string
   startDate: string
   endDate: string
-  status: 'pending' | 'paid' | 'renting' | 'returned' | 'cancelled'
   totalAmount: number
   deposit: number
-  size: string
+  status: OrderStatus
   createdAt: string
+  updatedAt: string
 }
 
 // API响应类型

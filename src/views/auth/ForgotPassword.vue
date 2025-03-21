@@ -21,7 +21,7 @@
           <div class="form-control mt-6">
             <button
               type="submit"
-              class="btn btn-primary"
+              class="btn btn-primary w-full"
               :disabled="isLoading"
             >
               {{ isLoading ? '发送中...' : '发送重置密码邮件' }}
