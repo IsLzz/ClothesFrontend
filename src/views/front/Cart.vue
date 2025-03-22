@@ -113,7 +113,7 @@ const cartItems = ref<CartItem[]>([
   {
     id: 1,
     name: '黑色真丝晚礼服',
-    image: '/images/dress1.jpg',
+    image: 'https://yize.ecel.cloud:9000/source/lry/detail_back.jpg',
     size: 'M',
     price: 199,
     deposit: 1800,
@@ -122,7 +122,7 @@ const cartItems = ref<CartItem[]>([
   {
     id: 2,
     name: '白色婚纱礼服',
-    image: '/images/dress2.jpg',
+    image: 'https://yize.ecel.cloud:9000/source/lry/detail_font.jpg',
     size: 'S',
     price: 299,
     deposit: 2700,

@@ -5,19 +5,13 @@
       <!-- 左侧商品图片 -->
       <div class="space-y-4">
         <div class="aspect-square rounded-lg overflow-hidden bg-base-200">
-          <img
-            :src="clothing?.mainImage || '/placeholder.png'"
-            :alt="clothing?.title"
-            class="w-full h-full object-cover"
-          />
+          <img :src="clothing?.mainImage || '/placeholder.png'" :alt="clothing?.title"
+            class="w-full h-full object-cover" />
         </div>
         <div class="grid grid-cols-4 gap-4">
-          <div
-            v-for="(image, index) in clothing?.images"
-            :key="index"
+          <div v-for="(image, index) in clothing?.images" :key="index"
             class="aspect-square rounded-lg overflow-hidden bg-base-200 cursor-pointer hover:ring-2 hover:ring-primary"
-            @click="selectImage(image)"
-          >
+            @click="selectImage(image)">
             <img :src="image" :alt="clothing?.title" class="w-full h-full object-cover" />
           </div>
         </div>
@@ -50,19 +44,13 @@
         <!-- 租赁选项 -->
         <div class="space-y-4">
           <h3 class="text-lg font-bold">租赁选项</h3>
-          
+
           <div class="form-control">
             <label class="label">
               <span class="label-text font-medium">租赁天数</span>
             </label>
             <div class="flex items-center gap-4">
-              <input
-                type="number"
-                v-model="rentalDays"
-                class="input input-bordered w-24"
-                min="1"
-                max="30"
-              />
+              <input type="number" v-model="rentalDays" class="input input-bordered w-24" min="1" max="30" />
               <span class="text-base-content/70">天</span>
             </div>
           </div>
@@ -71,28 +59,18 @@
             <label class="label">
               <span class="label-text font-medium">取件日期</span>
             </label>
-            <button 
-              popovertarget="calendar-popover" 
-              class="input input-bordered text-left"
-              :class="{'input-error': !pickupDate}"
-            >
+            <button popovertarget="calendar-popover" class="input input-bordered text-left"
+              :class="{ 'input-error': !pickupDate }">
               {{ pickupDate ? new Date(pickupDate).toLocaleDateString() : '请选择取件日期' }}
             </button>
-            <div 
-              popover 
-              id="calendar-popover" 
-              class="dropdown bg-base-100 rounded-box shadow-lg"
-            >
-              <calendar-date 
-                class="cally" 
-                :min="minPickupDate"
-                :value="pickupDate"
-                @change="handleDateChange"
-              >
-                <svg aria-label="Previous" class="fill-current size-4" slot="previous" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <div popover id="calendar-popover" class="dropdown bg-base-100 rounded-box shadow-lg">
+              <calendar-date class="cally" :min="minPickupDate" :value="pickupDate" @change="handleDateChange">
+                <svg aria-label="Previous" class="fill-current size-4" slot="previous"
+                  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                   <path d="M15.75 19.5 8.25 12l7.5-7.5"></path>
                 </svg>
-                <svg aria-label="Next" class="fill-current size-4" slot="next" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <svg aria-label="Next" class="fill-current size-4" slot="next" xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24">
                   <path d="m8.25 4.5 7.5 7.5-7.5 7.5"></path>
                 </svg>
                 <calendar-month></calendar-month>
@@ -102,7 +80,11 @@
 
           <div class="alert shadow-lg">
             <div>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-info flex-shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                class="stroke-info flex-shrink-0 w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
               <div>
                 <h3 class="font-bold">租赁费用</h3>
                 <div class="text-xs">总计：¥{{ totalPrice }}</div>
@@ -111,8 +93,10 @@
           </div>
 
           <button class="btn btn-primary btn-block gap-2" @click="handleRent">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
             立即租赁
           </button>
@@ -124,25 +108,13 @@
     <div class="card bg-base-100 shadow-xl">
       <div class="card-body">
         <div class="tabs tabs-boxed mb-6">
-          <a 
-            class="tab" 
-            :class="{'tab-active': activeTab === 'detail'}"
-            @click="activeTab = 'detail'"
-          >
+          <a class="tab" :class="{ 'tab-active': activeTab === 'detail' }" @click="activeTab = 'detail'">
             商品详情
           </a>
-          <a 
-            class="tab" 
-            :class="{'tab-active': activeTab === 'size'}"
-            @click="activeTab = 'size'"
-          >
+          <a class="tab" :class="{ 'tab-active': activeTab === 'size' }" @click="activeTab = 'size'">
             尺码信息
           </a>
-          <a 
-            class="tab" 
-            :class="{'tab-active': activeTab === 'service'}"
-            @click="activeTab = 'service'"
-          >
+          <a class="tab" :class="{ 'tab-active': activeTab === 'service' }" @click="activeTab = 'service'">
             租赁服务
           </a>
         </div>
@@ -151,7 +123,7 @@
           <div class="prose max-w-none">
             <h4>商品描述</h4>
             <p>{{ clothing?.detailDescription }}</p>
-            
+
             <h4>商品特点</h4>
             <ul>
               <li v-for="(feature, index) in clothing?.features" :key="index">
@@ -161,13 +133,8 @@
 
             <h4>商品图片</h4>
             <div class="grid grid-cols-2 gap-4">
-              <img
-                v-for="(image, index) in clothing?.detailImages"
-                :key="index"
-                :src="image"
-                :alt="clothing?.title"
-                class="rounded-lg"
-              />
+              <img v-for="(image, index) in clothing?.detailImages" :key="index" :src="image" :alt="clothing?.title"
+                class="rounded-lg" />
             </div>
           </div>
         </div>
@@ -218,29 +185,40 @@
       </div>
     </div>
   </div>
-  
+
   <!-- Toast 提示 -->
   <div class="toast toast-top toast-end z-[1000]">
-    <div 
-      v-show="showToast"
-      class="alert shadow-lg"
-      :class="[
-        {
-          'alert-info': toastType === 'info',
-          'alert-success': toastType === 'success',
-          'alert-warning': toastType === 'warning',
-          'alert-error': toastType === 'error'
-        },
-        'transition-all duration-300 ease-in-out',
-        showToast ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full'
-      ]"
-    >
+    <div v-show="showToast" class="alert shadow-lg" :class="[
+      {
+        'alert-info': toastType === 'info',
+        'alert-success': toastType === 'success',
+        'alert-warning': toastType === 'warning',
+        'alert-error': toastType === 'error'
+      },
+      'transition-all duration-300 ease-in-out',
+      showToast ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full'
+    ]">
       <div class="flex items-center gap-2">
         <!-- 不同类型显示不同图标 -->
-        <svg v-if="toastType === 'info'" class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-        <svg v-if="toastType === 'success'" class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-        <svg v-if="toastType === 'warning'" class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-        <svg v-if="toastType === 'error'" class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <svg v-if="toastType === 'info'" class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <svg v-if="toastType === 'success'" class="stroke-current flex-shrink-0 h-6 w-6" fill="none"
+          viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <svg v-if="toastType === 'warning'" class="stroke-current flex-shrink-0 h-6 w-6" fill="none"
+          viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+          </path>
+        </svg>
+        <svg v-if="toastType === 'error'" class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
         <span class="flex-1">{{ toastMessage }}</span>
       </div>
     </div>
@@ -273,8 +251,13 @@ const clothing = ref({
   title: '优雅黑色晚礼服',
   description: '简约优雅的黑色晚礼服，适合各种正式场合',
   price: 199,
-  mainImage: '/dress1.jpg',
-  images: ['/dress1.jpg', '/dress2.jpg', '/dress3.jpg', '/dress4.jpg'],
+  mainImage: 'https://yize.ecel.cloud:9000/source/lry/detail_back.jpg',
+  images: [
+    'https://yize.ecel.cloud:9000/source/lry/detail_font.jpg',
+    'https://yize.ecel.cloud:9000/source/lry/detail_back.jpg',
+    'https://yize.ecel.cloud:9000/source/lry/detail.jpg',
+    'https://yize.ecel.cloud:9000/source/lry/detail2.jpg'
+  ],
   category: '晚礼服',
   size: 'M',
   condition: '9成新',
@@ -285,7 +268,11 @@ const clothing = ref({
     '适合正式场合',
     '舒适合体'
   ],
-  detailImages: ['/detail1.jpg', '/detail2.jpg', '/detail3.jpg', '/detail4.jpg'],
+  detailImages: [
+    'https://yize.ecel.cloud:9000/source/lry/detail_font.jpg',
+    'https://yize.ecel.cloud:9000/source/lry/detail_back.jpg',
+    'https://yize.ecel.cloud:9000/source/lry/detail.jpg',
+    'https://yize.ecel.cloud:9000/source/lry/detail2.jpg'],
   sizeChart: [
     { name: 'S', bust: '84cm', waist: '66cm', hip: '90cm', length: '150cm' },
     { name: 'M', bust: '88cm', waist: '70cm', hip: '94cm', length: '152cm' },
@@ -325,7 +312,7 @@ let toastTimer: number | null = null
 
 // 显示 Toast 的函数
 const showToastMessage = (
-  message: string, 
+  message: string,
   type: 'info' | 'success' | 'warning' | 'error' = 'info',
   duration?: number
 ) => {
@@ -336,9 +323,9 @@ const showToastMessage = (
     warning: 3000,
     error: 3000
   }
-  
+
   const displayDuration = duration || defaultDurations[type]
-  
+
   // 如果已经有 Toast 显示，先清除之前的定时器
   if (showToast.value) {
     showToast.value = false
@@ -352,7 +339,7 @@ const showToastMessage = (
   toastMessage.value = message
   toastType.value = type
   showToast.value = true
-  
+
   // 设置新的定时器
   if (toastTimer) clearTimeout(toastTimer)
   toastTimer = window.setTimeout(() => {
@@ -394,7 +381,7 @@ const handleRent = () => {
 const handleDateChange = (event: any) => {
   pickupDate.value = event.target.value
   showToastMessage(
-    '已选择取件日期：' + new Date(event.target.value).toLocaleDateString(), 
+    '已选择取件日期：' + new Date(event.target.value).toLocaleDateString(),
     'info',
     4000
   )

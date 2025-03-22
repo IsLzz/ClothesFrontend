@@ -433,17 +433,17 @@ onUnmounted(() => {
 // 轮播图数据
 const slides = ref([
   {
-    image: 'https://picsum.photos/1920/500?random=1',
+    image: 'https://yize.ecel.cloud:9000/source/lry/cefcfc59cbb0f29393262de0606a7f70.jpg',
     title: '春季新品上市',
     description: '多款时尚单品，助您打造完美形象'
   },
   {
-    image: 'https://picsum.photos/1920/500?random=2',
+    image: 'https://yize.ecel.cloud:9000/source/lry/a034759e5396e497268c9320b290b1c1.jpeg',
     title: '商务正装专区',
     description: '面试、商务场合的最佳选择'
   },
   {
-    image: 'https://picsum.photos/1920/500?random=3',
+    image: 'https://yize.ecel.cloud:9000/source/lry/42697d22b65c2e0ed6d841bd20b83a5f.jpeg',
     title: '特惠活动',
     description: '新用户首单立减50元'
   }
@@ -451,10 +451,10 @@ const slides = ref([
 
 // 分类数据
 const categories = ref([
-  { id: 1, name: '连衣裙', icon: 'https://picsum.photos/100?random=1', count: 128 },
-  { id: 2, name: '西装', icon: 'https://picsum.photos/100?random=2', count: 86 },
-  { id: 3, name: '外套', icon: 'https://picsum.photos/100?random=3', count: 95 },
-  { id: 4, name: '裤装', icon: 'https://picsum.photos/100?random=4', count: 64 }
+  { id: 1, name: '连衣裙', icon: 'https://yize.ecel.cloud:9000/source/lry/tongzhuang.png', count: 128 },
+  { id: 2, name: '男装', icon: 'https://yize.ecel.cloud:9000/source/lry/nanzhuang.png', count: 86 },
+  { id: 3, name: '女装', icon: 'https://yize.ecel.cloud:9000/source/lry/nvzhuang.png', count: 95 },
+  { id: 4, name: '童装', icon: 'https://yize.ecel.cloud:9000/source/lry/tongzhuang.png', count: 64 }
 ])
 
 // 计算总商品数
@@ -468,28 +468,28 @@ const hotClothing = ref([
     id: 1,
     name: '黑色商务西装',
     price: 99,
-    image: 'https://picsum.photos/300/400?random=1',
+    image: 'https://yize.ecel.cloud:9000/source/lry/detail_back.jpg',
     rentCount: 256
   },
   {
     id: 2,
     name: '白色蕾丝连衣裙',
     price: 69,
-    image: 'https://picsum.photos/300/400?random=2',
+    image: 'https://yize.ecel.cloud:9000/source/lry/detail_back.jpg',
     rentCount: 188
   },
   {
     id: 3,
     name: '驼色风衣',
     price: 79,
-    image: 'https://picsum.photos/300/400?random=3',
+    image: 'https://yize.ecel.cloud:9000/source/lry/detail_back.jpg',
     rentCount: 142
   },
   {
     id: 4,
     name: '格纹西装套装',
     price: 129,
-    image: 'https://picsum.photos/300/400?random=4',
+    image: 'https://yize.ecel.cloud:9000/source/lry/detail_back.jpg',
     rentCount: 98
   }
 ])
