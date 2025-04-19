@@ -22,7 +22,7 @@
               </div>
             </div>
             
-            <h2 class="text-2xl font-bold mb-2">{{ userInfo?.username }}</h2>
+            <h2 class="text-2xl font-bold mb-2">{{ userInfo?.nickname }}</h2>
             <p class="text-base-content/60 mb-6">{{ userInfo?.email }}</p>
             
             <div class="w-full space-y-4">

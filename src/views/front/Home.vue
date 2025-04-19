@@ -1,5 +1,19 @@
 <template>
   <div class="container mx-auto px-4">
+    <!-- 加入购物车成功提示 -->
+    <div 
+      v-if="showCartMessage" 
+      class="fixed top-20 right-4 z-50 bg-primary text-white p-4 rounded-lg shadow-lg transform transition-all duration-300"
+      style="animation: slideInRight 0.3s ease-out"
+    >
+      <div class="flex items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>{{ cartMessage }}</span>
+      </div>
+    </div>
+    
     <!-- 轮播图 -->
     <div class="carousel w-full h-[500px] rounded-box overflow-hidden mb-8">
       <div v-for="(slide, index) in slides" 
@@ -96,15 +110,18 @@
           class="card bg-base-100 hover:shadow-xl transition-all hover:-translate-y-1"
         >
           <figure class="px-4 pt-4">
-            <img :src="item.image" class="rounded-xl aspect-[3/4] object-cover" :alt="item.name" />
+            <img :src="item.imageUrl" class="rounded-xl aspect-[3/4] object-cover" :alt="item.name" />
           </figure>
           <div class="card-body p-4">
             <h3 class="card-title text-lg">{{ item.name }}</h3>
             <div class="flex items-center gap-2">
-              <div class="badge badge-lg">¥{{ item.price }}/天</div>
-              <div class="badge badge-ghost">已租{{ item.rentCount }}次</div>
+              <div class="badge badge-lg">¥{{ item.pricePerDay }}/天</div>
+              <div class="badge badge-ghost">库存{{ item.stock }}件</div>
             </div>
             <div class="card-actions justify-end mt-2">
+              <button @click.stop="addToCart(item)" class="btn btn-outline btn-primary btn-sm">
+                加入购物车
+              </button>
               <router-link :to="`/clothing/${item.id}`" class="btn btn-primary btn-sm">立即预订</router-link>
             </div>
           </div>
@@ -390,6 +407,46 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+import clothesService from "@/api/services/clothesService.ts";
+
+// 引入购物车相关
+import { useCartStore } from '@/stores/cart'
+
+const router = useRouter()
+const cartStore = useCartStore()
+
+// 购物车提示状态
+const cartMessage = ref('')
+const showCartMessage = ref(false)
+
+// 将商品添加到购物车
+const addToCart = (item: any) => {
+  // 构建购物车项数据
+  const cartItem = {
+    id: item.id,
+    name: item.name,
+    image: item.imageUrl || 'https://via.placeholder.com/80',
+    size: item.size || 'M', // 默认尺码
+    price: item.pricePerDay,
+    deposit: Math.round(item.pricePerDay * 5), // 押金示例：日租金的5倍
+    days: 3, // 默认租赁3天
+    clothesId: item.id
+  }
+  
+  // 添加到购物车
+  cartStore.addItem(cartItem)
+  cartStore.saveCart()
+  
+  // 显示成功提示
+  cartMessage.value = '已添加到租赁车！'
+  showCartMessage.value = true
+  
+  // 3秒后自动隐藏提示
+  setTimeout(() => {
+    showCartMessage.value = false
+  }, 3000)
+}
 
 // 当前显示的轮播图索引
 const currentSlide = ref(0)
@@ -433,17 +490,17 @@ onUnmounted(() => {
 // 轮播图数据
 const slides = ref([
   {
-    image: 'https://yize.ecel.cloud:9000/source/lry/cefcfc59cbb0f29393262de0606a7f70.jpg',
+    image: 'https://file.ecel.cloud/source/lry/cefcfc59cbb0f29393262de0606a7f70.jpg',
     title: '春季新品上市',
     description: '多款时尚单品，助您打造完美形象'
   },
   {
-    image: 'https://yize.ecel.cloud:9000/source/lry/a034759e5396e497268c9320b290b1c1.jpeg',
+    image: 'https://file.ecel.cloud/source/lry/a034759e5396e497268c9320b290b1c1.jpeg',
     title: '商务正装专区',
     description: '面试、商务场合的最佳选择'
   },
   {
-    image: 'https://yize.ecel.cloud:9000/source/lry/42697d22b65c2e0ed6d841bd20b83a5f.jpeg',
+    image: 'https://file.ecel.cloud/source/lry/42697d22b65c2e0ed6d841bd20b83a5f.jpeg',
     title: '特惠活动',
     description: '新用户首单立减50元'
   }
@@ -451,10 +508,10 @@ const slides = ref([
 
 // 分类数据
 const categories = ref([
-  { id: 1, name: '连衣裙', icon: 'https://yize.ecel.cloud:9000/source/lry/tongzhuang.png', count: 128 },
-  { id: 2, name: '男装', icon: 'https://yize.ecel.cloud:9000/source/lry/nanzhuang.png', count: 86 },
-  { id: 3, name: '女装', icon: 'https://yize.ecel.cloud:9000/source/lry/nvzhuang.png', count: 95 },
-  { id: 4, name: '童装', icon: 'https://yize.ecel.cloud:9000/source/lry/tongzhuang.png', count: 64 }
+  { id: 1, name: '连衣裙', icon: 'https://file.ecel.cloud/source/lry/tongzhuang.png', count: 128 },
+  { id: 2, name: '男装', icon: 'https://file.ecel.cloud/source/lry/nanzhuang.png', count: 86 },
+  { id: 3, name: '女装', icon: 'https://file.ecel.cloud/source/lry/nvzhuang.png', count: 95 },
+  { id: 4, name: '童装', icon: 'https://file.ecel.cloud/source/lry/tongzhuang.png', count: 64 }
 ])
 
 // 计算总商品数
@@ -463,36 +520,7 @@ const totalItems = computed(() => {
 })
 
 // 热门服装数据
-const hotClothing = ref([
-  {
-    id: 1,
-    name: '黑色商务西装',
-    price: 99,
-    image: 'https://yize.ecel.cloud:9000/source/lry/detail_back.jpg',
-    rentCount: 256
-  },
-  {
-    id: 2,
-    name: '白色蕾丝连衣裙',
-    price: 69,
-    image: 'https://yize.ecel.cloud:9000/source/lry/detail_back.jpg',
-    rentCount: 188
-  },
-  {
-    id: 3,
-    name: '驼色风衣',
-    price: 79,
-    image: 'https://yize.ecel.cloud:9000/source/lry/detail_back.jpg',
-    rentCount: 142
-  },
-  {
-    id: 4,
-    name: '格纹西装套装',
-    price: 129,
-    image: 'https://yize.ecel.cloud:9000/source/lry/detail_back.jpg',
-    rentCount: 98
-  }
-])
+const hotClothing = ref()
 
 // 更新租赁流程数据
 const rentalSteps = ref([
@@ -523,5 +551,67 @@ const currentStep = ref(0)
 
 // 在 script setup 中添加
 const previewStep = ref(0)
+
+onMounted(() => {
+  clothesService.getAllClothes().then(res =>{
+    console.log(res)
+    hotClothing.value = res.items
+  })
+})
 </script>
+
+<style scoped>
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.card {
+  transition: all 0.3s ease;
+}
+
+.badge {
+  transition: all 0.2s ease;
+}
+
+.btn-primary:not(:disabled) {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary:not(:disabled)::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.5);
+  opacity: 0;
+  border-radius: 100%;
+  transform: scale(1, 1) translate(-50%, -50%);
+  transform-origin: 50% 50%;
+}
+
+.btn-primary:not(:disabled):hover::after {
+  animation: ripple 1s ease-out;
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0, 0);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(100, 100);
+    opacity: 0;
+  }
+}
+</style>
 

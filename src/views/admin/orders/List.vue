@@ -283,16 +283,34 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { orderService } from '@/api'
+import type { Order as ApiOrder, PaginatedResponse } from '@/api/services/orderService'
+
+// 扩展订单接口，添加前端展示所需的字段
+interface Order extends ApiOrder {
+  username: string; // 用户名，从API的userName或直接映射
+  clothing: {
+    name: string;
+    category: string;
+    image: string;
+  };
+  startDate: string | number[];
+  endDate: string | number[];
+  days: number;
+  amount: number; // 相当于totalAmount
+}
 
 // 状态映射
-const statusMap = {
+const statusMap: Record<string, string> = {
   pending: '待付款',
   paid: '已付款',
   renting: '租用中',
   returned: '已归还',
   completed: '已完成',
-  cancelled: '已取消'
+  cancelled: '已取消',
+  canceled: '已取消',  // 后端可能使用美式拼写
+  confirmed: '已确认'
 }
 
 // 筛选条件
@@ -312,119 +330,266 @@ const total = ref(0)
 const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
 
 // 订单列表
-const orderList = ref([
-  {
-    id: 'OR2024030001',
-    username: '张三',
-    phone: '13800138000',
-    address: '北京市朝阳区某某街道1号楼1单元101',
-    clothing: {
-      name: '黑色西装',
-      category: '西装',
-      image: 'https://picsum.photos/200'
-    },
-    startDate: '2024-03-01',
-    endDate: '2024-03-03',
-    days: 3,
-    amount: 297,
-    deposit: 299,
-    status: 'pending',
-    createdAt: '2024-03-01T10:00:00Z',
-    paidAt: null,
-    logs: [
-      {
-        action: '创建订单',
-        createdAt: '2024-03-01T10:00:00Z'
-      }
-    ]
-  },
-  {
-    id: 'OR2024030002',
-    username: '李四',
-    phone: '13900139000',
-    address: '上海市浦东新区某某路2号',
-    clothing: {
-      name: '白色连衣裙',
-      category: '连衣裙',
-      image: 'https://picsum.photos/200'
-    },
-    startDate: '2024-03-02',
-    endDate: '2024-03-04',
-    days: 3,
-    amount: 207,
-    deposit: 199,
-    status: 'paid',
-    createdAt: '2024-03-01T09:30:00Z',
-    paidAt: '2024-03-01T09:35:00Z',
-    logs: [
-      {
-        action: '创建订单',
-        createdAt: '2024-03-01T09:30:00Z'
-      },
-      {
-        action: '支付订单',
-        createdAt: '2024-03-01T09:35:00Z'
-      }
-    ]
-  }
-])
+const orderList = ref<Order[]>([])
+
+// 加载状态
+const loading = ref(false)
 
 // 当前查看的订单
-const currentOrder = ref(null)
+const currentOrder = ref<Order | null>(null)
 
 // 格式化日期
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString)
-  return new Intl.DateTimeFormat('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  }).format(date)
+const formatDate = (dateValue: string | number[] | null) => {
+  if (!dateValue) return '暂无数据';
+  
+  try {
+    let date: Date;
+    
+    // 处理数组格式的日期 [year, month, day, hour, minute, second]
+    if (Array.isArray(dateValue) && dateValue.length >= 6) {
+      // 注意：JavaScript月份是从0开始的，而后端返回的月份是从1开始的
+      date = new Date(
+        dateValue[0], // 年
+        dateValue[1] - 1, // 月(需要-1)
+        dateValue[2], // 日
+        dateValue[3] || 0, // 时
+        dateValue[4] || 0, // 分
+        dateValue[5] || 0  // 秒
+      );
+    } else if (typeof dateValue === 'string') {
+      // 处理字符串格式的日期
+      date = new Date(dateValue);
+    } else {
+      return '日期格式错误';
+    }
+    
+    // 检查日期是否有效
+    if (isNaN(date.getTime())) {
+      return '日期格式错误';
+    }
+    
+    return new Intl.DateTimeFormat('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(date);
+  } catch (error) {
+    console.error('日期格式化错误:', error);
+    return '日期格式错误';
+  }
 }
 
 // 格式化日期时间
-const formatDateTime = (dateString: string) => {
-  const date = new Date(dateString)
-  return new Intl.DateTimeFormat('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  }).format(date)
+const formatDateTime = (dateValue: string | number[] | null) => {
+  if (!dateValue) return '暂无数据';
+  
+  try {
+    let date: Date;
+    
+    // 处理数组格式的日期 [year, month, day, hour, minute, second]
+    if (Array.isArray(dateValue) && dateValue.length >= 6) {
+      // 注意：JavaScript月份是从0开始的，而后端返回的月份是从1开始的
+      date = new Date(
+        dateValue[0], // 年
+        dateValue[1] - 1, // 月(需要-1)
+        dateValue[2], // 日
+        dateValue[3] || 0, // 时
+        dateValue[4] || 0, // 分
+        dateValue[5] || 0  // 秒
+      );
+    } else if (typeof dateValue === 'string') {
+      // 处理字符串格式的日期
+      date = new Date(dateValue);
+    } else {
+      return '日期格式错误';
+    }
+    
+    // 检查日期是否有效
+    if (isNaN(date.getTime())) {
+      return '日期格式错误';
+    }
+    
+    return new Intl.DateTimeFormat('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
+  } catch (error) {
+    console.error('日期格式化错误:', error);
+    return '日期格式错误';
+  }
 }
 
 // 打开订单详情弹窗
-const openOrderModal = (order: any) => {
-  currentOrder.value = order
-  const modal = document.getElementById('order-modal') as HTMLDialogElement
-  modal?.showModal()
+const openOrderModal = (order: Order) => {
+  try {
+    // 确保订单对象的所有日期字段都是有效的
+    const safeOrder = { ...order };
+    
+    // 处理各种日期字段，将数组格式转换为ISO字符串格式
+    const processDateField = (dateValue: string | number[] | null): string | null => {
+      if (!dateValue) return null;
+      
+      if (Array.isArray(dateValue) && dateValue.length >= 6) {
+        const [year, month, day, hour = 0, minute = 0, second = 0] = dateValue;
+        const dateObj = new Date(year, month - 1, day, hour, minute, second);
+        if (!isNaN(dateObj.getTime())) {
+          return dateObj.toISOString();
+        }
+      } else if (typeof dateValue === 'string' && !isNaN(new Date(dateValue).getTime())) {
+        return dateValue;
+      }
+      
+      return null;
+    };
+    
+    // 处理订单中的各种日期
+    if (Array.isArray(safeOrder.createdAt)) {
+      safeOrder.createdAt = processDateField(safeOrder.createdAt) || new Date().toISOString();
+    }
+    
+    if (safeOrder.paidAt) {
+      safeOrder.paidAt = processDateField(safeOrder.paidAt);
+    }
+    
+    if (Array.isArray(safeOrder.startDate)) {
+      safeOrder.startDate = processDateField(safeOrder.startDate) || new Date().toISOString();
+    }
+    
+    if (Array.isArray(safeOrder.endDate)) {
+      safeOrder.endDate = processDateField(safeOrder.endDate) || new Date().toISOString();
+    }
+    
+    // 处理日志中的日期
+    if (safeOrder.logs && safeOrder.logs.length > 0) {
+      safeOrder.logs = safeOrder.logs.map(log => {
+        const safeLog = { ...log };
+        if (Array.isArray(safeLog.createdAt)) {
+          safeLog.createdAt = processDateField(safeLog.createdAt) || new Date().toISOString();
+        }
+        return safeLog;
+      });
+    }
+    
+    currentOrder.value = safeOrder;
+    const modal = document.getElementById('order-modal') as HTMLDialogElement;
+    modal?.showModal();
+  } catch (error) {
+    console.error('打开订单详情弹窗失败:', error);
+  }
 }
 
 // 取消订单
-const handleCancel = async (order: any) => {
+const handleCancel = async (order: Order) => {
   if (confirm(`确定要取消订单"${order.id}"吗？`)) {
     try {
-      // TODO: 调用API取消订单
-      console.log('取消订单:', order)
-      await fetchOrderList()
+      loading.value = true;
+      // 调用API取消订单
+      const orderId = typeof order.id === 'string' ? parseInt(order.id) : order.id;
+      await orderService.cancelOrder(orderId);
+      
+      // 提示用户操作成功
+      alert(`订单"${order.id}"已取消成功`);
+      
+      // 刷新订单列表
+      await fetchOrderList();
     } catch (error) {
-      console.error('取消订单失败:', error)
+      console.error('取消订单失败:', error);
+      alert('取消订单失败，请稍后重试');
+    } finally {
+      loading.value = false;
     }
   }
 }
 
+// 转换API返回的订单数据为界面显示数据
+const transformApiOrder = (apiOrder: ApiOrder): Order => {
+  // 获取第一个订单项的信息（简化处理，实际可能需要处理多个订单项）
+  const firstItem = apiOrder.orderItems[0] || {};
+  
+  // 计算订单的总天数
+  const days = firstItem.days || 0;
+  
+  return {
+    ...apiOrder,
+    username: apiOrder.userName || '未知用户',
+    clothing: {
+      // OrderItem中不存在这些属性，使用默认值或从其他地方获取
+      name: '服装商品', // 默认名称
+      category: '服装分类', // 默认分类
+      image: 'https://picsum.photos/200' // 默认图片
+    },
+    startDate: firstItem.startDate || apiOrder.createdAt,
+    endDate: firstItem.endDate || apiOrder.createdAt,
+    days,
+    amount: apiOrder.totalAmount || 0,
+    // 如果API没有返回这些字段，使用合理的默认值
+    deposit: apiOrder.deposit || apiOrder.totalAmount * 0.5,  // 默认押金为总金额的50%
+    logs: apiOrder.logs || [
+      {
+        action: '创建订单',
+        createdAt: apiOrder.createdAt
+      }
+    ]
+  };
+};
+
 // 获取订单列表
 const fetchOrderList = async () => {
   try {
-    // TODO: 从API获取订单列表
-    total.value = 156 // 示例数据
+    loading.value = true;
+    
+    // 构建筛选参数
+    const params: any = {
+      page: currentPage.value,
+      pageSize: pageSize.value
+    };
+    
+    // 根据筛选条件添加参数
+    if (filters.value.orderId) params.orderId = filters.value.orderId;
+    if (filters.value.username) params.username = filters.value.username;
+    if (filters.value.status) params.status = filters.value.status;
+    if (filters.value.startDate) params.startDate = filters.value.startDate;
+    if (filters.value.endDate) params.endDate = filters.value.endDate;
+    
+    // 设置排序
+    if (filters.value.sort) {
+      const [field, direction] = filters.value.sort.split('_');
+      params.sortBy = field;
+      params.sortDirection = direction.toUpperCase();
+    }
+    
+    // 调用API获取订单列表
+    const response = await orderService.getAllOrders(currentPage.value, pageSize.value);
+    
+    if (response) {
+      // 获取订单数据
+      const orders = response.items || [];
+      total.value = response.total || 0;
+      
+      // 转换API返回的订单为前端展示的订单格式
+      orderList.value = orders.map(transformApiOrder);
+    } else {
+      // 如果没有数据，设置为空数组
+      orderList.value = [];
+    }
   } catch (error) {
-    console.error('获取订单列表失败:', error)
+    console.error('获取订单列表失败:', error);
+    // 出错时设置为空数组
+    orderList.value = [];
+  } finally {
+    loading.value = false;
   }
 }
 
+// 监听筛选条件和分页变化
+watch([filters, currentPage], () => {
+  fetchOrderList();
+}, { deep: true });
+
 onMounted(() => {
-  fetchOrderList()
+  fetchOrderList();
 })
 </script> 

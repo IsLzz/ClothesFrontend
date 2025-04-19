@@ -124,6 +124,7 @@
           </label>
           <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
             <li><router-link to="/profile">个人资料</router-link></li>
+            <li v-if="userInfo?.roles.includes('ROLE_ADMIN')"> <router-link to="/admin">后台管理</router-link></li>
             <li><a @click="handleLogout">退出登录</a></li>
           </ul>
         </div>

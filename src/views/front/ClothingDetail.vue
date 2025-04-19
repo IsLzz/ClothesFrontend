@@ -5,7 +5,7 @@
       <!-- 左侧商品图片 -->
       <div class="space-y-4">
         <div class="aspect-square rounded-lg overflow-hidden bg-base-200">
-          <img :src="clothing?.mainImage || '/placeholder.png'" :alt="clothing?.title"
+          <img :src="clothing?.imageUrl || '/placeholder.png'" :alt="clothing?.name"
             class="w-full h-full object-cover" />
         </div>
         <div class="grid grid-cols-4 gap-4">
@@ -20,7 +20,7 @@
       <!-- 右侧商品信息 -->
       <div class="space-y-6">
         <div>
-          <h1 class="text-3xl font-bold mb-2">{{ clothing?.title }}</h1>
+          <h1 class="text-3xl font-bold mb-2">{{ clothing?.name }}</h1>
           <p class="text-base-content/70">{{ clothing?.description }}</p>
         </div>
 
@@ -28,7 +28,7 @@
 
         <div class="space-y-4">
           <div class="flex items-baseline gap-2">
-            <span class="text-2xl font-bold text-primary">¥{{ clothing?.price }}</span>
+            <span class="text-2xl font-bold text-primary">¥{{ clothing?.pricePerDay }}</span>
             <span class="text-base-content/70">/ 天</span>
           </div>
 
@@ -230,6 +230,9 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import 'cally'
+import clothesService from "@/api/services/clothesService.ts"
+import { createOrder } from "@/api"
+import type { ApiResponse, Order } from '@/types'
 
 // 声明自定义元素类型
 declare global {
@@ -246,39 +249,41 @@ const router = useRouter()
 const userStore = useUserStore()
 
 // 模拟商品数据
-const clothing = ref({
-  id: 1,
-  title: '优雅黑色晚礼服',
-  description: '简约优雅的黑色晚礼服，适合各种正式场合',
-  price: 199,
-  mainImage: 'https://yize.ecel.cloud:9000/source/lry/detail_back.jpg',
-  images: [
-    'https://yize.ecel.cloud:9000/source/lry/detail_font.jpg',
-    'https://yize.ecel.cloud:9000/source/lry/detail_back.jpg',
-    'https://yize.ecel.cloud:9000/source/lry/detail.jpg',
-    'https://yize.ecel.cloud:9000/source/lry/detail2.jpg'
-  ],
-  category: '晚礼服',
-  size: 'M',
-  condition: '9成新',
-  detailDescription: '这是一件设计简约但不失优雅的黑色晚礼服。采用高质量面料制作，穿着舒适，适合各种正式场合。',
-  features: [
-    '高质量面料',
-    '简约优雅设计',
-    '适合正式场合',
-    '舒适合体'
-  ],
-  detailImages: [
-    'https://yize.ecel.cloud:9000/source/lry/detail_font.jpg',
-    'https://yize.ecel.cloud:9000/source/lry/detail_back.jpg',
-    'https://yize.ecel.cloud:9000/source/lry/detail.jpg',
-    'https://yize.ecel.cloud:9000/source/lry/detail2.jpg'],
-  sizeChart: [
-    { name: 'S', bust: '84cm', waist: '66cm', hip: '90cm', length: '150cm' },
-    { name: 'M', bust: '88cm', waist: '70cm', hip: '94cm', length: '152cm' },
-    { name: 'L', bust: '92cm', waist: '74cm', hip: '98cm', length: '154cm' }
-  ]
-})
+const clothing = ref()
+
+// {
+//   id: 1,
+//       title: '优雅黑色晚礼服',
+//     description: '简约优雅的黑色晚礼服，适合各种正式场合',
+//     price: 199,
+//     mainImage: 'https://yize.ecel.cloud:9000/source/lry/detail_back.jpg',
+//     images: [
+//   'https://yize.ecel.cloud:9000/source/lry/detail_font.jpg',
+//   'https://yize.ecel.cloud:9000/source/lry/detail_back.jpg',
+//   'https://yize.ecel.cloud:9000/source/lry/detail.jpg',
+//   'https://yize.ecel.cloud:9000/source/lry/detail2.jpg'
+// ],
+//     category: '晚礼服',
+//     size: 'M',
+//     condition: '9成新',
+//     detailDescription: '这是一件设计简约但不失优雅的黑色晚礼服。采用高质量面料制作，穿着舒适，适合各种正式场合。',
+//     features: [
+//   '高质量面料',
+//   '简约优雅设计',
+//   '适合正式场合',
+//   '舒适合体'
+// ],
+//     detailImages: [
+//   'https://yize.ecel.cloud:9000/source/lry/detail_font.jpg',
+//   'https://yize.ecel.cloud:9000/source/lry/detail_back.jpg',
+//   'https://yize.ecel.cloud:9000/source/lry/detail.jpg',
+//   'https://yize.ecel.cloud:9000/source/lry/detail2.jpg'],
+//     sizeChart: [
+//   { name: 'S', bust: '84cm', waist: '66cm', hip: '90cm', length: '150cm' },
+//   { name: 'M', bust: '88cm', waist: '70cm', hip: '94cm', length: '152cm' },
+//   { name: 'L', bust: '92cm', waist: '74cm', hip: '98cm', length: '154cm' }
+// ]
+// }
 
 // 租赁相关
 const rentalDays = ref(1)
@@ -353,7 +358,7 @@ onUnmounted(() => {
 })
 
 // 处理租赁
-const handleRent = () => {
+const handleRent = async () => {
   if (!userStore.isLoggedIn) {
     showToastMessage('请先登录后再进行租赁', 'warning', 4000)
     setTimeout(() => {
@@ -367,14 +372,68 @@ const handleRent = () => {
     return
   }
 
-  // TODO: 处理租赁逻辑
-  showToastMessage('租赁申请已提交，请等待确认', 'success')
-  console.log('租赁信息：', {
-    clothingId: clothing.value?.id,
-    rentalDays: rentalDays.value,
-    pickupDate: pickupDate.value,
-    totalPrice: totalPrice.value
-  })
+  try {
+    // 计算结束日期
+    const startDate = new Date(pickupDate.value)
+    const endDate = new Date(startDate)
+    endDate.setDate(startDate.getDate() + rentalDays.value)
+    
+    // 格式化日期为 YYYY-MM-DD 格式
+    const formatDate = (date: Date) => {
+      return date.toISOString().split('T')[0]
+    }
+    
+    // 显示加载状态
+    showToastMessage('正在提交订单...', 'info')
+    
+    // 安全处理类型转换，获取用户信息和商品信息
+    const userInfo = userStore.userInfo
+    const clothingId = clothing.value?.id 
+    
+    if (!userInfo?.id || !clothingId) {
+      showToastMessage('用户信息或商品信息不完整', 'error')
+      return
+    }
+    
+    // 构建订单请求数据，与后端OrderCreateRequest结构匹配
+    const orderRequest = {
+      userId: Number(userInfo.id),
+      orderItems: [
+        {
+          clothesId: Number(clothingId),
+          quantity: 1,
+          startDate: formatDate(startDate),
+          endDate: formatDate(endDate)
+        }
+      ]
+    }
+    
+    // 提交订单
+    const response = await createOrder(orderRequest)
+    
+    // 使用可选链和类型断言安全地访问属性
+    // @ts-ignore
+    if (response?.code === 200 && response?.data) {
+      showToastMessage('订单创建成功，即将跳转到支付页面', 'success')
+      
+      setTimeout(() => {
+        // @ts-ignore
+        const orderId = response?.data?.id
+        if (orderId) {
+          router.push(`/payment/${orderId}`)
+        } else {
+          router.push('/orders')
+        }
+      }, 1500)
+    } else {
+      // @ts-ignore
+      showToastMessage(response?.message || '创建订单失败，请稍后重试', 'error')
+    }
+  } catch (error: any) {
+    console.error('创建订单失败:', error)
+    const errorMsg = error.response?.data?.message || error.message || '创建订单失败，请稍后重试'
+    showToastMessage(errorMsg, 'error')
+  }
 }
 
 // 处理日期选择
@@ -386,6 +445,19 @@ const handleDateChange = (event: any) => {
     4000
   )
 }
+
+onMounted(() => {
+  //获取路由id
+  if (route.params.id) {
+    // 从 URL 参数中获取服装ID
+    const clothingId = route.params.id as string
+    // 根据服装ID获取服装详情
+    clothesService.getClothesById(Number(clothingId)).then(res=>{
+      console.log(res)
+      clothing.value = res
+    })
+  }
+})
 </script>
 
 <style scoped>

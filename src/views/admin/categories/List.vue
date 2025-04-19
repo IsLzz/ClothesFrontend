@@ -29,7 +29,7 @@
                   </div>
                 </td>
                 <td>{{ category.name }}</td>
-                <td>{{ category.clothingCount }}</td>
+                <td>{{ category.clothingCount || 0 }}</td>
                 <td>{{ formatDateTime(category.createdAt) }}</td>
                 <td>
                   <div class="flex gap-2">
@@ -37,7 +37,7 @@
                     <button 
                       class="btn btn-sm btn-error" 
                       @click="handleDelete(category)"
-                      :disabled="category.clothingCount > 0"
+                      :disabled="(category.clothingCount || 0) > 0"
                     >
                       删除
                     </button>
@@ -97,10 +97,42 @@
           </div>
 
           <div class="modal-action">
-            <button type="submit" class="btn btn-primary">保存</button>
+            <button type="submit" class="btn btn-primary" :disabled="loading">
+              <span v-if="loading" class="loading loading-spinner"></span>
+              保存
+            </button>
             <button type="button" class="btn" @click="closeModal">取消</button>
           </div>
         </form>
+      </div>
+      <form method="dialog" class="modal-backdrop">
+        <button>关闭</button>
+      </form>
+    </dialog>
+
+    <!-- 消息提示弹窗 -->
+    <dialog id="message-modal" class="modal">
+      <div class="modal-box">
+        <h3 class="font-bold text-lg">{{ messageTitle }}</h3>
+        <p class="py-4">{{ messageContent }}</p>
+        <div class="modal-action">
+          <button class="btn" @click="closeMessageModal">确定</button>
+        </div>
+      </div>
+      <form method="dialog" class="modal-backdrop">
+        <button>关闭</button>
+      </form>
+    </dialog>
+
+    <!-- 确认弹窗 -->
+    <dialog id="confirm-modal" class="modal">
+      <div class="modal-box">
+        <h3 class="font-bold text-lg">确认操作</h3>
+        <p class="py-4">{{ confirmContent }}</p>
+        <div class="modal-action">
+          <button class="btn btn-error" @click="handleConfirm">确定删除</button>
+          <button class="btn" @click="closeConfirmModal">取消</button>
+        </div>
       </div>
       <form method="dialog" class="modal-backdrop">
         <button>关闭</button>
@@ -111,56 +143,39 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import categoryService from '@/api/services/categoryService'
+import type { Category } from '@/api/services/categoryService'
+import fileService from '@/api/services/fileService'
 
 // 分类列表
-const categoryList = ref([
-  {
-    id: 1,
-    name: '连衣裙',
-    icon: 'https://picsum.photos/200',
-    description: '各类连衣裙',
-    clothingCount: 12,
-    createdAt: '2024-01-01T10:00:00Z'
-  },
-  {
-    id: 2,
-    name: '西装',
-    icon: 'https://picsum.photos/200',
-    description: '正装西装',
-    clothingCount: 8,
-    createdAt: '2024-01-02T14:30:00Z'
-  },
-  {
-    id: 3,
-    name: '外套',
-    icon: 'https://picsum.photos/200',
-    description: '各类外套',
-    clothingCount: 15,
-    createdAt: '2024-01-03T09:15:00Z'
-  },
-  {
-    id: 4,
-    name: '裤装',
-    icon: 'https://picsum.photos/200',
-    description: '各类裤装',
-    clothingCount: 10,
-    createdAt: '2024-01-04T16:45:00Z'
-  }
-])
+const categoryList = ref<Category[]>([])
+const loading = ref(false)
 
 // 表单数据
 const form = ref({
-  id: null,
+  id: null as number | null,
   name: '',
   icon: '',
   description: ''
 })
 
+// 文件对象
+const uploadFile = ref<File | null>(null)
+
+// 消息弹窗数据
+const messageTitle = ref('提示')
+const messageContent = ref('')
+
+// 确认弹窗数据
+const confirmContent = ref('')
+const categoryToDelete = ref<Category | null>(null)
+
 // 是否为编辑模式
 const isEditing = computed(() => !!form.value.id)
 
 // 格式化日期时间
-const formatDateTime = (dateString: string) => {
+const formatDateTime = (dateString?: string) => {
+  if (!dateString) return '-'
   const date = new Date(dateString)
   return new Intl.DateTimeFormat('zh-CN', {
     year: 'numeric',
@@ -171,6 +186,52 @@ const formatDateTime = (dateString: string) => {
   }).format(date)
 }
 
+// 显示消息弹窗
+const showMessage = (title: string, content: string) => {
+  messageTitle.value = title
+  messageContent.value = content
+  const modal = document.getElementById('message-modal') as HTMLDialogElement
+  modal?.showModal()
+}
+
+// 关闭消息弹窗
+const closeMessageModal = () => {
+  const modal = document.getElementById('message-modal') as HTMLDialogElement
+  modal?.close()
+}
+
+// 显示确认弹窗
+const showConfirm = (content: string, category: Category) => {
+  confirmContent.value = content
+  categoryToDelete.value = category
+  const modal = document.getElementById('confirm-modal') as HTMLDialogElement
+  modal?.showModal()
+}
+
+// 关闭确认弹窗
+const closeConfirmModal = () => {
+  const modal = document.getElementById('confirm-modal') as HTMLDialogElement
+  modal?.close()
+}
+
+// 处理确认操作
+const handleConfirm = async () => {
+  if (categoryToDelete.value) {
+    try {
+      loading.value = true
+      await categoryService.deleteCategory(categoryToDelete.value.id)
+      closeConfirmModal()
+      showMessage('成功', '分类删除成功')
+      await fetchCategoryList()
+    } catch (error: any) {
+      console.error('删除失败:', error)
+      showMessage('错误', error.message || '删除失败，请重试')
+    } finally {
+      loading.value = false
+    }
+  }
+}
+
 // 打开添加弹窗
 const openAddModal = () => {
   form.value = {
@@ -179,13 +240,20 @@ const openAddModal = () => {
     icon: '',
     description: ''
   }
+  uploadFile.value = null
   const modal = document.getElementById('category-modal') as HTMLDialogElement
   modal?.showModal()
 }
 
 // 打开编辑弹窗
-const openEditModal = (category: any) => {
-  form.value = { ...category }
+const openEditModal = (category: Category) => {
+  form.value = { 
+    id: category.id,
+    name: category.name,
+    icon: category.icon || '',
+    description: category.description || ''
+  }
+  uploadFile.value = null
   const modal = document.getElementById('category-modal') as HTMLDialogElement
   modal?.showModal()
 }
@@ -200,6 +268,7 @@ const closeModal = () => {
 const handleImageChange = (event: Event) => {
   const file = (event.target as HTMLInputElement).files?.[0]
   if (file) {
+    uploadFile.value = file
     const reader = new FileReader()
     reader.onload = (e) => {
       form.value.icon = e.target?.result as string
@@ -210,40 +279,68 @@ const handleImageChange = (event: Event) => {
 
 // 提交表单
 const handleSubmit = async () => {
+  if (!form.value.name.trim()) {
+    showMessage('提示', '分类名称不能为空')
+    return
+  }
+  
   try {
-    // TODO: 调用API保存数据
-    console.log('提交数据:', form.value)
+    loading.value = true
+    
+    // 如果有新图片，先上传图片
+    if (uploadFile.value) {
+      const uploadResult = await fileService.uploadImage(uploadFile.value)
+      form.value.icon = uploadResult.url
+    }
+    
+    // 根据是否有ID决定是创建还是更新
+    if (isEditing.value) {
+      await categoryService.updateCategory(form.value.id!, {
+        name: form.value.name,
+        description: form.value.description,
+        icon: form.value.icon
+      })
+      showMessage('成功', '分类更新成功')
+    } else {
+      await categoryService.createCategory({
+        name: form.value.name,
+        description: form.value.description,
+        icon: form.value.icon
+      })
+      showMessage('成功', '分类添加成功')
+    }
+    
     closeModal()
     await fetchCategoryList()
-  } catch (error) {
+  } catch (error: any) {
     console.error('保存失败:', error)
+    showMessage('错误', error.message || '操作失败，请重试')
+  } finally {
+    loading.value = false
   }
 }
 
 // 删除分类
-const handleDelete = async (category: any) => {
-  if (category.clothingCount > 0) {
-    alert('该分类下还有服装，不能删除')
+const handleDelete = async (category: Category) => {
+  if ((category.clothingCount || 0) > 0) {
+    showMessage('提示', '该分类下还有服装，不能删除')
     return
   }
   
-  if (confirm(`确定要删除分类"${category.name}"吗？`)) {
-    try {
-      // TODO: 调用API删除数据
-      console.log('删除数据:', category)
-      await fetchCategoryList()
-    } catch (error) {
-      console.error('删除失败:', error)
-    }
-  }
+  showConfirm(`确定要删除分类"${category.name}"吗？`, category)
 }
 
 // 获取分类列表
 const fetchCategoryList = async () => {
   try {
-    // TODO: 从API获取分类列表
-  } catch (error) {
+    loading.value = true
+    const data = await categoryService.getAllCategories()
+    categoryList.value = data
+  } catch (error: any) {
     console.error('获取分类列表失败:', error)
+    showMessage('错误', error.message || '获取分类列表失败，请重试')
+  } finally {
+    loading.value = false
   }
 }
 

@@ -6,6 +6,8 @@ import App from './App.vue'
 import './style.css'
 import 'cally'
 
+
+
 // 创建应用实例
 const app = createApp(App)
 

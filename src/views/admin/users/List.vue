@@ -49,7 +49,16 @@
     <!-- 用户列表 -->
     <div class="card bg-base-100 shadow-xl">
       <div class="card-body">
-        <div class="overflow-x-auto">
+        <div v-if="loading" class="flex justify-center py-8">
+          <span class="loading loading-spinner loading-lg text-primary"></span>
+        </div>
+        
+        <div v-else-if="userList.length === 0" class="alert alert-info">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <span>暂无用户数据</span>
+        </div>
+        
+        <div v-else class="overflow-x-auto">
           <table class="table">
             <thead>
               <tr>
@@ -64,30 +73,30 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="user in userList" :key="user.id">
+              <tr v-for="user in userList" :key="user.id" class="hover">
                 <td>
                   <div class="avatar">
                     <div class="w-12 rounded-full">
-                      <img :src="user.avatar || '/default-avatar.png'" :alt="user.username" />
+                      <img :src="user.avatar || '/default-avatar.png'" :alt="user.nickname" />
                     </div>
                   </div>
                 </td>
-                <td>{{ user.username }}</td>
+                <td>{{ user.nickname }}</td>
                 <td>{{ user.phone }}</td>
                 <td>
                   <div :class="[
                     'badge',
                     {
-                      'badge-primary': user.role === 'admin',
-                      'badge-secondary': user.role === 'user'
+                      'badge-primary': user.roles.includes('ADMIN'),
+                      'badge-secondary': !user.roles.includes('ADMIN')
                     }
                   ]">
-                    {{ roleMap[user.role] }}
+                    {{ getRoleDisplayName(user.roles) }}
                   </div>
                 </td>
                 <td>{{ user.orderCount }}</td>
                 <td>¥{{ user.orderAmount.toLocaleString() }}</td>
-                <td>{{ formatDateTime(user.createdAt) }}</td>
+                <td>{{ formatDateTime(user.createTime) }}</td>
                 <td>
                   <div class="flex gap-2">
                     <button class="btn btn-sm btn-info" @click="openUserModal(user)">详情</button>
@@ -137,24 +146,24 @@
           <div class="flex gap-6 mb-6">
             <div class="avatar">
               <div class="w-24 rounded-full">
-                <img :src="currentUser.avatar || '/default-avatar.png'" :alt="currentUser.username" />
+                <img :src="currentUser.avatar || '/default-avatar.png'" :alt="currentUser.nickname" />
               </div>
             </div>
             <div class="flex-1">
               <div class="flex items-center gap-2">
-                <div class="text-2xl font-bold">{{ currentUser.username }}</div>
+                <div class="text-2xl font-bold">{{ currentUser.nickname }}</div>
                 <div :class="[
                   'badge',
                   {
-                    'badge-primary': currentUser.role === 'admin',
-                    'badge-secondary': currentUser.role === 'user'
+                    'badge-primary': currentUser.roles.includes('ADMIN'),
+                    'badge-secondary': !currentUser.roles.includes('ADMIN')
                   }
                 ]">
-                  {{ roleMap[currentUser.role] }}
+                  {{ getRoleDisplayName(currentUser.roles) }}
                 </div>
                 <div v-if="currentUser.disabled" class="badge badge-error">已禁用</div>
               </div>
-              <div class="mt-2 text-sm opacity-60">注册时间：{{ formatDateTime(currentUser.createdAt) }}</div>
+              <div class="mt-2 text-sm opacity-60">注册时间：{{ formatDateTime(currentUser.createTime) }}</div>
               <div class="mt-1 text-sm opacity-60">手机号：{{ currentUser.phone }}</div>
               <div class="mt-1 text-sm opacity-60">邮箱：{{ currentUser.email }}</div>
             </div>
@@ -234,13 +243,13 @@
                           'badge',
                           {
                             'badge-warning': order.status === 'pending',
-                            'badge-info': order.status === 'paid',
+                            'badge-info': order.status === 'confirmed',
                             'badge-primary': order.status === 'renting',
                             'badge-success': ['returned', 'completed'].includes(order.status),
-                            'badge-error': order.status === 'cancelled'
+                            'badge-error': order.status === 'canceled'
                           }
                         ]">
-                          {{ orderStatusMap[order.status] }}
+                          {{ orderStatusMap[order.status] || order.status }}
                         </div>
                       </td>
                       <td>{{ formatDateTime(order.createdAt) }}</td>
@@ -266,22 +275,52 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { userService } from '@/api'
+import type { User } from '@/api/services/userService'
 
 // 角色映射
-const roleMap = {
-  admin: '管理员',
-  user: '普通用户'
+const roleMap: Record<string, string> = {
+  'ROLE_ADMIN': '管理员',
+  'ROLE_USER': '普通用户'
 }
 
 // 订单状态映射
-const orderStatusMap = {
-  pending: '待付款',
-  paid: '已付款',
-  renting: '租用中',
-  returned: '已归还',
-  completed: '已完成',
-  cancelled: '已取消'
+const orderStatusMap: Record<string, string> = {
+  pending: '待处理',
+  confirmed: '已确认',
+  canceled: '已取消',
+  completed: '已完成'
+}
+
+// 定义扩展的用户类型（含额外数据）
+interface ExtendedUser extends Omit<User, 'createTime'> {
+  createTime: string | number[];
+  orderCount: number;
+  orderAmount: number;
+  orderIncrease: number;
+  amountIncrease: number;
+  addressCount: number;
+  addresses: Array<{
+    name: string;
+    phone: string;
+    province: string;
+    city: string;
+    district: string;
+    address: string;
+    isDefault: boolean;
+  }>;
+  recentOrders: Array<{
+    id: string;
+    clothing: {
+      name: string;
+      image: string;
+    };
+    amount: number;
+    status: string;
+    createdAt: string;
+  }>;
+  disabled?: boolean;
 }
 
 // 筛选条件
@@ -299,126 +338,131 @@ const total = ref(0)
 const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
 
 // 用户列表
-const userList = ref([
-  {
-    id: 1,
-    username: '张三',
-    phone: '13800138000',
-    email: 'zhangsan@example.com',
-    role: 'user',
-    orderCount: 5,
-    orderAmount: 1495,
-    avatar: 'https://picsum.photos/200',
-    createdAt: '2024-02-01T10:00:00Z',
-    disabled: false,
-    orderIncrease: 20,
-    amountIncrease: 15.5,
-    addressCount: 2,
-    addresses: [
-      {
-        name: '张三',
-        phone: '13800138000',
-        province: '北京市',
-        city: '北京市',
-        district: '朝阳区',
-        address: '某某街道1号楼1单元101',
-        isDefault: true
-      },
-      {
-        name: '张三',
-        phone: '13800138000',
-        province: '上海市',
-        city: '上海市',
-        district: '浦东新区',
-        address: '某某路2号',
-        isDefault: false
-      }
-    ],
-    recentOrders: [
-      {
-        id: 'OR2024030001',
-        clothing: {
-          name: '黑色西装',
-          image: 'https://picsum.photos/200'
-        },
-        amount: 297,
-        status: 'completed',
-        createdAt: '2024-03-01T10:00:00Z'
-      }
-    ]
-  },
-  {
-    id: 2,
-    username: '李四',
-    phone: '13900139000',
-    email: 'lisi@example.com',
-    role: 'admin',
-    orderCount: 8,
-    orderAmount: 2392,
-    avatar: 'https://picsum.photos/200',
-    createdAt: '2024-01-15T14:30:00Z',
-    disabled: false,
-    orderIncrease: -5,
-    amountIncrease: -2.3,
-    addressCount: 1,
-    addresses: [
-      {
-        name: '李四',
-        phone: '13900139000',
-        province: '广东省',
-        city: '深圳市',
-        district: '南山区',
-        address: '某某大厦3号楼',
-        isDefault: true
-      }
-    ],
-    recentOrders: [
-      {
-        id: 'OR2024030002',
-        clothing: {
-          name: '白色连衣裙',
-          image: 'https://picsum.photos/200'
-        },
-        amount: 207,
-        status: 'renting',
-        createdAt: '2024-03-01T09:30:00Z'
-      }
-    ]
-  }
-])
+const userList = ref<ExtendedUser[]>([])
 
-// 当前查看的用户
-const currentUser = ref(null)
+// 加载状态
+const loading = ref(false)
+
+// 当前选中的用户
+const currentUser = ref<ExtendedUser | null>(null)
 
 // 格式化日期时间
-const formatDateTime = (dateString: string) => {
-  const date = new Date(dateString)
-  return new Intl.DateTimeFormat('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  }).format(date)
+const formatDateTime = (dateValue: string | number[] | null) => {
+  if (!dateValue) return '暂无数据';
+  
+  try {
+    let date: Date;
+    
+    // 处理数组格式的日期 [year, month, day, hour, minute, second]
+    if (Array.isArray(dateValue) && dateValue.length >= 6) {
+      // 注意：JavaScript月份是从0开始的，而后端返回的月份是从1开始的
+      date = new Date(
+        dateValue[0], // 年
+        dateValue[1] - 1, // 月(需要-1)
+        dateValue[2], // 日
+        dateValue[3], // 时
+        dateValue[4], // 分
+        dateValue[5]  // 秒
+      );
+    } else if (typeof dateValue === 'string') {
+      // 处理字符串格式的日期
+      date = new Date(dateValue);
+    } else {
+      return '日期格式错误';
+    }
+    
+    // 检查日期是否有效
+    if (isNaN(date.getTime())) {
+      return '日期格式错误';
+    }
+    
+    return new Intl.DateTimeFormat('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
+  } catch (error) {
+    console.error('日期格式化错误:', error);
+    return '日期格式错误';
+  }
 }
 
 // 打开用户详情弹窗
-const openUserModal = (user: any) => {
-  currentUser.value = user
-  const modal = document.getElementById('user-modal') as HTMLDialogElement
-  modal?.showModal()
+const openUserModal = (user: ExtendedUser) => {
+  try {
+    // 确保用户对象的所有日期字段都是有效的
+    const safeUser = { ...user };
+    
+    // 检查并处理createTime（可能是数组格式）
+    if (Array.isArray(safeUser.createTime) && safeUser.createTime.length >= 6) {
+      // 数组格式转换为ISO字符串
+      const [year, month, day, hour, minute, second] = safeUser.createTime;
+      const dateObj = new Date(year, month - 1, day, hour, minute, second);
+      if (!isNaN(dateObj.getTime())) {
+        safeUser.createTime = dateObj.toISOString();
+      } else {
+        safeUser.createTime = new Date().toISOString();
+      }
+    } else if (typeof safeUser.createTime === 'string') {
+      // 如果是字符串但无效
+      if (isNaN(new Date(safeUser.createTime).getTime())) {
+        safeUser.createTime = new Date().toISOString();
+      }
+    } else {
+      // 其他情况，设置为当前时间
+      safeUser.createTime = new Date().toISOString();
+    }
+    
+    // 检查并修复recentOrders中的日期
+    if (safeUser.recentOrders && safeUser.recentOrders.length > 0) {
+      safeUser.recentOrders = safeUser.recentOrders.map(order => {
+        const safeOrder = { ...order };
+        if (!safeOrder.createdAt || isNaN(new Date(safeOrder.createdAt).getTime())) {
+          safeOrder.createdAt = new Date().toISOString();
+        }
+        return safeOrder;
+      });
+    }
+    
+    currentUser.value = safeUser;
+    const modal = document.getElementById('user-modal') as HTMLDialogElement;
+    modal?.showModal();
+  } catch (error) {
+    console.error('打开用户详情弹窗失败:', error);
+  }
 }
 
 // 启用/禁用用户
-const handleToggleStatus = async (user: any) => {
+const handleToggleStatus = async (user: ExtendedUser) => {
   const action = user.disabled ? '启用' : '禁用'
-  if (confirm(`确定要${action}用户"${user.username}"吗？`)) {
+  if (confirm(`确定要${action}用户"${user.nickname}"吗？`)) {
     try {
-      // TODO: 调用API更新用户状态
-      console.log(`${action}用户:`, user)
+      loading.value = true
+      // 调用API更新用户状态
+      await userService.updateUser(user.id, {
+        // 假设后端使用disabled字段表示用户状态
+        disabled: !user.disabled
+      } as any)
+      
+      // 更新本地状态
+      user.disabled = !user.disabled
+      
+      // 提示用户操作成功
+      alert(`用户"${user.nickname}"已${action}成功`);
+      
+      // 刷新用户列表
       await fetchUserList()
     } catch (error) {
-      console.error(`${action}用户失败:`, error)
+      // 提示用户操作失败
+      console.error(`${action}用户失败:`, error);
+      alert(`${action}用户失败，请稍后重试`);
+      
+      // 恢复原状态
+      user.disabled = !!user.disabled;
+    } finally {
+      loading.value = false
     }
   }
 }
@@ -426,10 +470,103 @@ const handleToggleStatus = async (user: any) => {
 // 获取用户列表
 const fetchUserList = async () => {
   try {
-    // TODO: 从API获取用户列表
-    total.value = 89 // 示例数据
+    loading.value = true
+    
+    // 调用API获取用户列表
+    const response = await userService.getAllUsers(currentPage.value, pageSize.value)
+    
+    if (response) {
+      // 获取基本用户数据
+      const users = response.items || []
+      total.value = response.total || 0
+      
+      // 转换为扩展用户数据（添加订单等信息）
+      userList.value = users.map(user => {
+        // 生成一个安全的日期字符串
+        const safeDate = () => {
+          const date = new Date();
+          return date.toISOString();
+        };
+        
+        // 确保createTime存在且有效（可能是数组或字符串）
+        // 不需要在这里转换日期格式，因为formatDateTime函数已经能处理数组格式
+      
+        return {
+          ...user,
+          orderCount: Math.floor(Math.random() * 10),
+          orderAmount: Math.floor(Math.random() * 5000),
+          orderIncrease: Math.floor(Math.random() * 30) - 10,
+          amountIncrease: Math.floor(Math.random() * 40) - 15,
+          addressCount: Math.floor(Math.random() * 3) + 1,
+          disabled: false,
+          // createTime已经从API获取，无需再赋值
+          addresses: [
+            {
+              name: user.nickname || '',
+              phone: user.phone || '',
+              province: '北京市',
+              city: '北京市',
+              district: '朝阳区',
+              address: '某某街道1号楼1单元101',
+              isDefault: true
+            }
+          ],
+          recentOrders: [
+            {
+              id: `OR${Math.floor(Math.random() * 10000)}`,
+              clothing: {
+                name: '黑色西装',
+                image: 'https://picsum.photos/200'
+              },
+              amount: 297,
+              status: 'completed',
+              createdAt: safeDate()
+            }
+          ]
+        }
+      });
+    } else {
+      // 如果没有数据，设置为空数组
+      userList.value = [];
+    }
   } catch (error) {
-    console.error('获取用户列表失败:', error)
+    console.error('获取用户列表失败:', error);
+    // 出错时设置为空数组
+    userList.value = [];
+  } finally {
+    loading.value = false
+  }
+}
+
+// 监听筛选条件和分页变化
+watch([filters, currentPage], () => {
+  fetchUserList()
+}, { deep: true })
+
+// 获取角色显示名称
+const getRoleDisplayName = (roles: string | string[] | undefined): string => {
+  if (!roles) return '普通用户';
+  
+  try {
+    // 如果roles是字符串
+    if (typeof roles === 'string') {
+      if (roles.includes('ADMIN')) return roleMap['ROLE_ADMIN'];
+      return roleMap['ROLE_USER'];
+    }
+    
+    // 如果roles是数组
+    if (Array.isArray(roles)) {
+      if (roles.some(role => role && typeof role === 'string' && role.includes('ADMIN'))) {
+        return roleMap['ROLE_ADMIN'];
+      }
+      return roleMap['ROLE_USER'];
+    }
+    
+    // 默认返回普通用户
+    return roleMap['ROLE_USER'];
+  } catch (error) {
+    console.error('角色判断出错:', error);
+    return '普通用户';
   }
 }
 

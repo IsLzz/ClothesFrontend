@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw, NavigationGuardNext, RouteLocationNormalized } from 'vue-router'
 
 const routes: Array<RouteRecordRaw> = [
@@ -31,6 +31,11 @@ const routes: Array<RouteRecordRaw> = [
         path: 'orders',
         name: 'orders',
         component: () => import('@/views/front/Orders.vue')
+      },
+      {
+        path: 'payment/:id',
+        name: 'payment',
+        component: () => import('@/views/front/Payment.vue')
       },
       {
         path: 'profile',
@@ -101,6 +106,16 @@ const routes: Array<RouteRecordRaw> = [
         path: 'categories',
         name: 'admin-categories',
         component: () => import('@/views/admin/categories/List.vue')
+      },
+      {
+        path: 'rentals',
+        name: 'admin-rentals',
+        component: () => import('@/views/admin/rentals/List.vue')
+      },
+      {
+        path: 'rentals/:id',
+        name: 'admin-rental-detail',
+        component: () => import('@/views/admin/rentals/Detail.vue')
       }
     ]
   }
@@ -113,8 +128,43 @@ const router = createRouter({
 
 // 路由守卫
 router.beforeEach((to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
-  const token = localStorage.getItem('token')
-  const userRole = JSON.parse(localStorage.getItem('user') || '{}').role
+  // 增加安全检查，避免JSON解析错误
+  let user = null
+  let token = null
+  let userRole = 'guest'
+  
+  try {
+    // 获取token
+    const data = JSON.parse(localStorage.getItem('user') || '{}')
+    
+    const storedToken = data.token
+    if (storedToken && storedToken !== 'undefined' && storedToken !== 'null') {
+      token = storedToken
+    }
+    
+    // 获取用户信息
+    const userData = data.userInfo
+    
+    if (userData && userData !== 'undefined' && userData !== 'null') {
+      try {
+        if (userData) {
+          user = userData
+          
+          // 根据API接口，用户数据中的角色信息存储在roles字段
+          if (user.roles) {
+            // 角色可能是字符串，如 "ADMIN,USER" 或单个 "ADMIN"
+            userRole = user.roles
+          }
+        }
+      } catch (e) {
+        // 解析user JSON数据失败
+      }
+    }
+  } catch (error) {
+    // 处理用户认证状态时出错
+    // 清除可能损坏的数据
+    localStorage.removeItem('user')
+  }
   
   // 公开页面（无需登录）
   const publicPages = [
@@ -131,13 +181,13 @@ router.beforeEach((to: RouteLocationNormalized, from: RouteLocationNormalized, n
   const authRequired = !publicPages.includes(to.path)
   
   // 需要管理员权限的页面
-  const adminRequired = to.matched.some((record: RouteRecordRaw) => record.meta.requiresAdmin)
+  const adminRequired = to.matched.some((record) => record.meta.requiresAdmin)
   
   // 已登录用户访问登录页时重定向到首页
   if (token && publicPages.includes(to.path) && to.path.startsWith('/auth/')) {
     return next('/')
   }
-  
+
   // 未登录用户访问需要登录的页面时重定向到登录页
   if (authRequired && !token) {
     return next({
@@ -147,7 +197,7 @@ router.beforeEach((to: RouteLocationNormalized, from: RouteLocationNormalized, n
   }
   
   // 非管理员访问管理页面时重定向到首页
-  if (adminRequired && userRole !== 'admin') {
+  if (adminRequired && (!userRole.includes('ADMIN'))) {
     return next('/')
   }
   
@@ -155,5 +205,4 @@ router.beforeEach((to: RouteLocationNormalized, from: RouteLocationNormalized, n
   next()
 })
 
-export default router 
- 
+export default router
